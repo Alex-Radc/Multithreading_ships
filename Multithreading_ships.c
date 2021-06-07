@@ -9,11 +9,8 @@
 #include <sys/msg.h>
 
 #define MAX_THREADS 5
-#define MAX 10
-#define SHIPS 3
-#define SUCCESS 0
-#define NUMBER_OF_SHIPS 10
-#define DELAY 10
+#define NUMBER_OF_SHIPS 100
+#define DELAY 0
 
 typedef enum _SHIP_SIZE { THE_LAST, SMALL , MIDDLE , BIG } SHIP_SIZE;
 typedef enum _PROD_TYPE { ALL, BREAD, BANANAS, CLOTHES } PROD_TYPE;
@@ -27,44 +24,72 @@ typedef struct _MSG {
 
 int msgid = 0;
 
-void hello_world1();
-void hello_world2();
-void hello_world3();
-void hello_world4();
-void hello_world5();
+void create_ship_send_tosecond_threads(void);
+void send_ship_tothreads(void);
+void getting_ship_with_bread(void);
+void getting_ship_with_bananas(void);
+void getting_ship_with_clothes(void);
 int convert_ship_size(SHIP_SIZE size);
 
-/////////////////////////////////////////
+/*creation of ships with goods and, depending on the goods,
+ *  transfer to the 3rd, 4th and 5th flows as well as the counting of goods.
+ */
+////////////////////////////////////////////////////////////////////////
 int main(void)
 {
 	int i = 0;
 	key_t key = 0;
+	int ret_msgctl = 0;
 
 	pthread_t threads[MAX_THREADS] = { 0 };
-	void* thread_functions[MAX_THREADS] = { hello_world1, hello_world2, hello_world3, hello_world4, hello_world5};
-	int status[MAX_THREADS] = { 0 };
-	int status_addr[MAX_THREADS] = { 0 };
+	void* thread_functions[MAX_THREADS] = { create_ship_send_tosecond_threads, send_ship_tothreads,
+											getting_ship_with_bread, getting_ship_with_bananas, getting_ship_with_clothes };
+	int status = 0;
 
 	/* create queue */
 	key = ftok("src/Multithreading_ships.c", 65);
+	if(-1 == key)
+	{
+		printf("Value error key\n");
+		return -1;
+	}
 	msgid = msgget(key, 0666 | IPC_CREAT);
-
+	if(-1 == msgid)
+	{
+		printf("Value error msgid\n");
+		return -1;
+	}
 	for( i = 0; i< MAX_THREADS; i++)
 	{
-		status[i] = pthread_create(&threads[i], NULL, thread_functions[i], NULL);
+		status = pthread_create(&threads[i], NULL, thread_functions[i], NULL);
+		if(0 != status )
+		{
+			printf("Function return error  pthread_create()\n");
+			return -1;
+		}
 	}
-
     for(i = MAX_THREADS-1; i >= 0; i-- )
     {
-    	status[i] = pthread_join(threads[i], NULL);
+    	status = pthread_join(threads[i], NULL);
+    	if( 0 != status)
+    	{
+    		printf("Function pthread_join() return error\n");
+    		return -1;
+    	}
     }
 	/* delete queue */
     msgctl(msgid, IPC_RMID, NULL);
-
+    if(-1 == ret_msgctl )
+    {
+    	printf("Function msgctl() return error\n");
+    	return -1;
+    }
 	return EXIT_SUCCESS;
 }
-
-void hello_world1()
+//////////////////////////////////////////////////////////////
+/*		create random ship and send information to second thread
+*/
+void create_ship_send_tosecond_threads(void)
 {
 	int i = 0;
 	int k = 0;
@@ -93,8 +118,10 @@ void hello_world1()
 	printf("total = %d\n", count_all);
 	return;
 }
-
-void hello_world2()
+/////////////////////////////////////////////////////////////
+/*	receiving the ship and, depending on its goods, transferring it further to 3 4 or 5 threads
+ */
+void send_ship_tothreads(void)
 {
 	int i = 0;
 	int msg_size = 0;
@@ -125,8 +152,11 @@ void hello_world2()
     } while(THE_LAST != message.ship_size);
 	return;
 }
-
-void hello_world3()
+////////////////////////////////////////////////////////////////
+/*  getting a ship with bread
+ *
+ */
+void getting_ship_with_bread(void)
 {
 	int count_bread = 0;
 	MSG message;
@@ -139,8 +169,10 @@ void hello_world3()
 	printf("count_bread = %d\n", count_bread);
 	return;
 }
-
-void hello_world4()
+//////////////////////////////////////////////////////////////////
+/*  getting a ship with bananas
+ */
+void getting_ship_with_bananas(void)
 {
 	int count_bananas = 0;
 	MSG message;
@@ -153,7 +185,10 @@ void hello_world4()
 	printf("count_bananas = %d\n", count_bananas);
 	return;
 }
-void hello_world5()
+/////////////////////////////////////////////////////////////
+/*	getting a ship with clothes
+ */
+void getting_ship_with_clothes(void)
 {
 	int count_clothes = 0;
 	MSG message;
@@ -167,7 +202,9 @@ void hello_world5()
 	printf("count_clothes = %d\n", count_clothes);
 	return;
 }
-
+///////////////////////////////////////////////////////////////
+/* counting the quantity of goods
+ */
 int convert_ship_size(SHIP_SIZE size)
 {
 	switch(size)
