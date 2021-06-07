@@ -8,6 +8,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 
+#define MAX_THREADS 5
 #define MAX 10
 #define SHIPS 3
 #define SUCCESS 0
@@ -36,42 +37,27 @@ int convert_ship_size(SHIP_SIZE size);
 /////////////////////////////////////////
 int main(void)
 {
+	int i = 0;
 	key_t key = 0;
 
-	pthread_t thread1;
-	pthread_t thread2;
-	pthread_t thread3;
-	pthread_t thread4;
-	pthread_t thread5;
-
-	int status1;
-	int status2;
-	int status3;
-	int status4;
-	int status5;
-
-	int status_addr1;
-	int status_addr2;
-	int status_addr3;
-	int status_addr4;
-	int status_addr5;
+	pthread_t threads[MAX_THREADS] = { 0 };
+	void* thread_functions[MAX_THREADS] = { hello_world1, hello_world2, hello_world3, hello_world4, hello_world5};
+	int status[MAX_THREADS] = { 0 };
+	int status_addr[MAX_THREADS] = { 0 };
 
 	/* create queue */
 	key = ftok("src/Multithreading_ships.c", 65);
 	msgid = msgget(key, 0666 | IPC_CREAT);
 
-	status1 = pthread_create(&thread1, NULL, (void*) hello_world1, NULL);
-	status2 = pthread_create(&thread2, NULL, (void*) hello_world2, NULL);
-	status3 = pthread_create(&thread3, NULL, (void*) hello_world3, NULL);
-	status4 = pthread_create(&thread4, NULL, (void*) hello_world4, NULL);
-	status5 = pthread_create(&thread5, NULL, (void*) hello_world5, NULL);
+	for( i = 0; i< MAX_THREADS; i++)
+	{
+		status[i] = pthread_create(&threads[i], NULL, thread_functions[i], NULL);
+	}
 
-	status1 = pthread_join(thread1, NULL);
-	status2 = pthread_join(thread2, NULL);
-	status3 = pthread_join(thread3, NULL);
-	status4 = pthread_join(thread4, NULL);
-	status5 = pthread_join(thread5, NULL);
-
+    for(i = MAX_THREADS-1; i >= 0; i-- )
+    {
+    	status[i] = pthread_join(threads[i], NULL);
+    }
 	/* delete queue */
     msgctl(msgid, IPC_RMID, NULL);
 
